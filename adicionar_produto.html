@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Adicionar Produto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f8f5f0;
+            padding: 20px;
+            color: #5d4037;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #8d6e63;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #5d4037;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #efebe9;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #5d4037;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #d7ccc8;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: #8d6e63;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(141, 110, 99, 0.2);
+        }
+
+        .btn {
+            background: #795548;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #6d4c41;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: #5d4037;
+        }
+
+        .btn-primary:hover {
+            background: #4e342e;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        #debugInfo {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            white-space: pre-wrap;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Adicionar Novo Produto</h1>
+        
+        <form id="produtoForm">
+            <label for="nome">Nome do Produto:</label>
+            <input type="text" id="nome" required>
+            
+            <label for="categoria">Categoria:</label>
+            <input type="text" id="categoria" required>
+            
+            <label for="codigo">Código:</label>
+            <input type="text" id="codigo" required>
+            
+            <label for="preco">Preço (R$):</label>
+            <input type="number" id="preco" step="0.01" min="0" required>
+            
+            <button type="submit" class="btn btn-primary">Salvar Produto</button>
+        </form>
+        
+        <div id="successMessage" class="success-message">
+            Produto adicionado com sucesso!
+        </div>
+        
+        <div id="errorMessage" class="error-message">
+            Erro ao adicionar produto.
+        </div>
+        
+        <div id="debugInfo"></div>
+    </div>
+
+    <script>
+        document.getElementById('produtoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nome').value;
+            const categoria = document.getElementById('categoria').value;
+            const codigo = document.getElementById('codigo').value;
+            const preco = parseFloat(document.getElementById('preco').value);
+            
+            // Mostrar mensagens
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const debugInfo = document.getElementById('debugInfo');
+            
+            // Ocultar mensagens anteriores
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            debugInfo.style.display = 'none';
+            
+            const data = {
+                nome: nome,
+                categoria: categoria,
+                codigo: codigo,
+                preco: preco
+            };
+            
+            try {
+                // Mostrar detalhes da requisição
+                debugInfo.textContent = `Enviando requisição para: /api/produtos\nMétodo: POST\nDados: ${JSON.stringify(data, null, 2)}`;
+                debugInfo.style.display = 'block';
+                
+                // Enviar dados para o servidor
+                const response = await fetch('/api/produtos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                // Ler o conteúdo da resposta uma única vez
+                let responseText;
+                try {
+                    responseText = await response.text();
+                    debugInfo.textContent += `\n\nResposta do servidor (status ${response.status}):\n${responseText}`;
+                } catch (error) {
+                    debugInfo.textContent += `\n\nErro ao ler a resposta: ${error.message}`;
+                    throw new Error('Erro ao ler a resposta do servidor');
+                }
+                
+                // Tentar converter para JSON
+                let responseData;
+                try {
+                    responseData = responseText ? JSON.parse(responseText) : {};
+                    debugInfo.textContent += `\n\nJSON parseado: ${JSON.stringify(responseData, null, 2)}`;
+                } catch (jsonError) {
+                    debugInfo.textContent += `\n\nResposta não é um JSON válido: ${jsonError.message}`;
+                    // Para respostas que não são JSON válido
+                    if (!response.ok) {
+                        throw new Error(responseText || `Erro ${response.status}: ${response.statusText}`);
+                    }
+                    // Continuamos mesmo sem JSON válido se a resposta for OK
+                }
+                
+                // Se a resposta não for OK, lançar erro
+                if (!response.ok) {
+                    throw new Error(responseData?.message || `Erro ${response.status}: ${response.statusText}`);
+                }
+                
+                // Limpar o formulário
+                document.getElementById('produtoForm').reset();
+                
+                // Mostrar mensagem de sucesso
+                successMessage.style.display = 'block';
+                
+                // Ocultar mensagem de sucesso após 3 segundos
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                
+                // Mostrar mensagem de erro
+                errorMessage.textContent = error.message || 'Erro ao adicionar produto';
+                errorMessage.style.display = 'block';
+                
+                // Adicionar detalhes do erro
+                debugInfo.textContent += `\n\nDetalhes do erro: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

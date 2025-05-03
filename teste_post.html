@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testar POST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, button {
+            padding: 8px;
+            width: 100%;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Testar requisição POST</h1>
+    
+    <div class="form-group">
+        <label for="url">URL:</label>
+        <input type="text" id="url" value="/api/produtos">
+    </div>
+    
+    <div class="form-group">
+        <label for="metodo">Método:</label>
+        <select id="metodo">
+            <option value="GET">GET</option>
+            <option value="POST" selected>POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="dados">Dados (JSON):</label>
+        <textarea id="dados" rows="10" style="width: 100%;">{
+  "nome": "pastel",
+  "categoria": "sa",
+  "codigo": "123456",
+  "preco": 8
+}</textarea>
+    </div>
+    
+    <button id="enviar">Enviar requisição</button>
+    
+    <div id="resultado">
+        <h3>Resposta:</h3>
+        <pre id="resposta"></pre>
+        <h3>Detalhes:</h3>
+        <pre id="detalhes"></pre>
+    </div>
+    
+    <script>
+        document.getElementById('enviar').addEventListener('click', async function() {
+            const url = document.getElementById('url').value;
+            const metodo = document.getElementById('metodo').value;
+            const dadosInput = document.getElementById('dados').value;
+            
+            let dados;
+            try {
+                dados = JSON.parse(dadosInput);
+            } catch (e) {
+                document.getElementById('resposta').textContent = "Erro: JSON inválido";
+                document.getElementById('detalhes').textContent = e.message;
+                return;
+            }
+            
+            document.getElementById('resposta').textContent = `Enviando requisição para: ${url}`;
+            document.getElementById('detalhes').textContent = `Método: ${metodo}\nDados: ${JSON.stringify(dados, null, 2)}`;
+            
+            try {
+                const fetchOptions = {
+                    method: metodo,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                // Adiciona body apenas para métodos que o suportam
+                if (metodo !== 'GET' && metodo !== 'HEAD') {
+                    fetchOptions.body = JSON.stringify(dados);
+                }
+                
+                const resposta = await fetch(url, fetchOptions);
+                
+                let respostaTexto;
+                
+                try {
+                    const respostaJson = await resposta.json();
+                    respostaTexto = `Resposta do servidor (status ${resposta.status}):\nJSON parseado: ${JSON.stringify(respostaJson, null, 2)}`;
+                } catch (e) {
+                    const respostaTexto = await resposta.text();
+                    respostaTexto = `Resposta do servidor (status ${resposta.status}):\nTexto: ${respostaTexto}`;
+                }
+                
+                if (!resposta.ok) {
+                    respostaTexto += `\nDetalhes do erro: ${resposta.statusText}`;
+                }
+                
+                document.getElementById('resposta').textContent = respostaTexto;
+            } catch (e) {
+                document.getElementById('resposta').textContent = "Erro ao fazer a requisição";
+                document.getElementById('detalhes').textContent = e.message;
+            }
+        });
+    </script>
+</body>
+</html>

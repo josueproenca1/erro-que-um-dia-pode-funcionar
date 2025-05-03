@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Remover Produto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f8f5f0;
+            padding: 20px;
+            color: #5d4037;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #d32f2f;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #5d4037;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #efebe9;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #5d4037;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #d7ccc8;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #d32f2f;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.2);
+        }
+
+        .btn {
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #b71c1c;
+            transform: translateY(-2px);
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .product-list {
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .product-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-details {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: bold;
+            color: #5d4037;
+        }
+
+        .product-code {
+            font-size: 0.8rem;
+            color: #8d6e63;
+        }
+
+        .product-price {
+            font-weight: bold;
+        }
+
+        .remove-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #b71c1c;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #8d6e63;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Remover Produto</h1>
+        
+        <div class="search-section">
+            <label for="pesquisa">Buscar por nome ou código:</label>
+            <input type="text" id="pesquisa" placeholder="Digite para pesquisar...">
+            <button id="btnPesquisar" class="btn">Buscar Produtos</button>
+        </div>
+        
+        <div id="successMessage" class="success-message">
+            Produto removido com sucesso!
+        </div>
+        
+        <div id="errorMessage" class="error-message">
+            Erro ao remover produto.
+        </div>
+        
+        <div class="product-list" id="productList">
+            <div class="loading">Carregando produtos...</div>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const pesquisaInput = document.getElementById('pesquisa');
+        const btnPesquisar = document.getElementById('btnPesquisar');
+        const productList = document.getElementById('productList');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Carregar produtos ao iniciar a página
+        window.onload = async function() {
+            await carregarProdutos();
+        };
+        
+        // Adicionar event listener para pesquisa
+        btnPesquisar.addEventListener('click', carregarProdutos);
+        
+        // Permitir pesquisa com tecla Enter
+        pesquisaInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                carregarProdutos();
+            }
+        });
+        
+        async function carregarProdutos() {
+            // Ocultar mensagens
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            
+            // Mostrar carregamento
+            productList.innerHTML = '<div class="loading">Carregando produtos...</div>';
+            
+            try {
+                // Buscar todos os produtos
+                const response = await fetch('/api/produtos');
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar produtos');
+                }
+                
+                const produtos = await response.json();
+                
+                // Filtrar produtos com base na pesquisa
+                const termoPesquisa = pesquisaInput.value.toLowerCase();
+                const produtosFiltrados = produtos.filter(produto => 
+                    produto.nome.toLowerCase().includes(termoPesquisa) || 
+                    produto.codigo.toLowerCase().includes(termoPesquisa)
+                );
+                
+                // Exibir produtos
+                mostrarProdutos(produtosFiltrados);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                productList.innerHTML = '<div class="error-message">Erro ao carregar produtos</div>';
+            }
+        }
+        
+        function mostrarProdutos(produtos) {
+            // Limpar lista de produtos
+            productList.innerHTML = '';
+            
+            if (produtos.length === 0) {
+                productList.innerHTML = '<div class="loading">Nenhum produto encontrado</div>';
+                return;
+            }
+            
+            // Adicionar cada produto à lista
+            produtos.forEach(produto => {
+                const produtoDiv = document.createElement('div');
+                produtoDiv.className = 'product-item';
+                
+                produtoDiv.innerHTML = `
+                    <div class="product-details">
+                        <div class="product-name">${produto.nome}</div>
+                        <div class="product-code">Código: ${produto.codigo} | Categoria: ${produto.categoria}</div>
+                        <div class="product-price">R$ ${produto.preco.toFixed(2)}</div>
+                    </div>
+                    <button class="remove-btn" data-codigo="${produto.codigo}">Remover</button>
+                `;
+                
+                productList.appendChild(produtoDiv);
+                
+                // Adicionar event listener ao botão de remover
+                produtoDiv.querySelector('.remove-btn').addEventListener('click', function() {
+                    const codigo = this.getAttribute('data-codigo');
+                    removerProduto(codigo);
+                });
+            });
+        }
+        
+        async function removerProduto(codigo) {
+            if (!confirm(`Tem certeza que deseja remover o produto com código ${codigo}?`)) {
+                return;
+            }
+            
+            try {
+                // Enviar requisição para remover o produto
+                const response = await fetch(`/api/produtos/${codigo}`, {
+                    method: 'DELETE'
+                });
+                
+                const responseData = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(responseData.message || 'Erro ao remover produto');
+                }
+                
+                // Mostrar mensagem de sucesso
+                successMessage.textContent = responseData.message || 'Produto removido com sucesso!';
+                successMessage.style.display = 'block';
+                
+                // Atualizar lista de produtos
+                await carregarProdutos();
+                
+                // Ocultar mensagem de sucesso após 3 segundos
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                
+                // Mostrar mensagem de erro
+                errorMessage.textContent = error.message || 'Erro ao remover produto';
+                errorMessage.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
